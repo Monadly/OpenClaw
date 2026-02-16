@@ -1,5 +1,7 @@
 ---
 name: monadly-core
+version: "0.9"
+date: 2026-02-16
 description: |
   Core safety, orchestration, and state management for Monadly DeFi operations on Monad (Chain ID: 143).
   Wallet setup and Monad Foundry installation, pre-flight checks (RPC, gas, chain ID, state verification),
@@ -1343,8 +1345,25 @@ When you receive a strategy activation message (structured or conversational):
    - `positionMode` — "percent" (range as % from price) or "fixed" (token value amounts)
    - `checkInterval` — e.g., "Every 10 minutes" → 600 seconds
    - `rebalanceTrigger` — "every-check" / "out-of-range" / "none"
-   - `epochBehavior` — "withdraw" / "redeploy" / "remain"
+   - `epochBehavior` — "withdraw" / "redeploy" / "remain" (see Epoch End Behavior below)
    - `statusReportFreq` — "every-cycle" / "actions-only"
+
+#### Epoch End Behavior
+
+When a pool's reward epoch ends (rewards stop or reset), the agent must decide what to do with the liquidity still in that pool. The `epochBehavior` setting controls this:
+
+| Value | Action | When to use |
+|-------|--------|-------------|
+| `"redeploy"` | Withdraw liquidity from the ended pool and redeploy it to the next best pool in the rankings that still has active rewards. This is the most capital-efficient option — funds are never idle. | Default for active strategies. Best for users who want maximum capital utilization. |
+| `"withdraw"` | Withdraw liquidity and hold the tokens in the wallet. Do not redeploy anywhere. Send a Telegram notification: "Epoch ended for [POOL]. Withdrew $[X]. Funds in wallet awaiting instructions." | Conservative users who want manual control over redeployment. |
+| `"remain"` | Leave the liquidity in the pool even after the epoch ends. The position earns trading fees but no reward emissions. Useful if the user expects a new epoch to start soon. | Pools with frequent epoch renewals or high fee income. |
+
+**Detection:** During each monitoring cycle, check if any tracked pool's reward epoch has ended by:
+1. Comparing current block/timestamp against the pool's `epochEnd` from the rankings data
+2. Checking if the pool dropped from the rankings entirely (no rewards = not listed)
+3. Checking if the pool's APR dropped to fee-only (reward APR = 0)
+
+**Execution order:** Process epoch-end actions BEFORE rotation checks. A pool whose epoch ended should not be counted as a "dropped pool" for rotation purposes — it's a known expected exit.
 
 2. **Echo parsed strategy summary** and ask for confirmation:
 
@@ -1612,6 +1631,75 @@ Send these via Telegram at the appropriate times during each monitoring cycle.
 2. MON/WETH on LFJ — $330 | +1.8% | Bins 30-46 ✅
 3. MON/DAK on LFJ — $329.50 | new | Bins 12-28 ✅
 ```
+
+### Heartbeat Setup — Persistent Monitoring via Cron
+
+The strategy monitoring cycle MUST run as a persistent heartbeat — not just within an interactive session. When a user activates a strategy, **set up a local cron job or systemd timer** so checks continue even when the chat session ends.
+
+**On strategy activation, automatically:**
+
+1. Create a monitor script at `~/.openclaw/heartbeat.sh` that:
+   - Loads environment (`MONAD_RPC_URL`, `PRIVATE_KEY`, wallet address)
+   - Acquires the lock file (see M4)
+   - Runs one full monitoring cycle (the decision tree above)
+   - Releases the lock and exits
+2. Register it as a systemd timer (Linux) or launchd plist (macOS) with the interval from `strategy.checkInterval` (default: 10 minutes). See M13 for setup templates.
+3. Confirm to the user: "Heartbeat registered — checking every {interval}. Monitoring persists across reboots."
+
+**After every heartbeat cycle, report to Telegram:**
+
+Every cycle — whether or not actions were taken — MUST send a Telegram message. The message content depends on what happened:
+
+| Outcome | Telegram Report |
+|---------|-----------------|
+| All positions in range, no actions | Routine Check template (positions, P&L, next check time) |
+| Rebalance executed | Rebalance Event template (what moved, old → new range, gas cost) |
+| Pool rotation executed | Rotation Event template (exited pool, entered pool, reason) |
+| Error or failure | Error report with details + "Reply with instructions or I'll retry next cycle" |
+| Ambiguous situation | Ask for instructions: "Position X is 2% out of range — minor drift. Should I rebalance now or wait? Reply `rebalance` or `wait`" |
+
+**When unclear, ask — don't guess:**
+
+If the heartbeat encounters a situation not covered by the current strategy settings (e.g., a pool is technically out of range but only by a tiny margin, or gas is unusually high, or rankings data is stale), send a Telegram message asking for instructions:
+
+```text
+🦞 NEEDS INPUT — 14:40 UTC
+
+⚠️ MON/USDC is 1.5% out of range (minor drift).
+Gas is 3x normal right now (0.003 MON vs usual 0.001).
+
+Options:
+1. Rebalance now (costs ~$1.20 in gas)
+2. Wait until next cycle
+3. Wait until >5% out of range
+
+Reply with 1, 2, or 3 — or tell me your preference.
+⏱ Auto-waiting until next cycle if no reply in 10 min.
+```
+
+**Adaptive learning from user commands:**
+
+The heartbeat should learn the user's rebalancing preferences over time by tracking their responses:
+
+1. **Track decisions** in `~/.openclaw/strategy-preferences.json`:
+
+   ```json
+   {
+     "rebalanceThreshold": { "learned": 3.0, "samples": 7, "history": ["wait@1.5%", "rebalance@3.2%", "rebalance@2.8%", ...] },
+     "gasToleranceMultiple": { "learned": 2.0, "samples": 4 },
+     "rotationPatience": { "learned": 3, "samples": 5 }
+   }
+   ```
+
+2. **After 3+ consistent responses** to the same type of decision, update the learned threshold and stop asking:
+   - "You've told me to wait on small drifts (<2%) three times. I'll auto-wait on minor drifts from now on. Say `reset preferences` to clear."
+3. **Announce when a learned preference is applied:**
+   - "Skipping rebalance for MON/USDC (1.8% drift) — you prefer to wait on small drifts. Will rebalance if it exceeds 3%."
+4. **Never auto-learn for high-stakes decisions** — always ask before: first-time pool rotations, withdrawals, strategy changes, or any action involving >10% of total capital.
+
+**Dashboard settings override learned preferences.** If the user changes `rebalanceTrigger` or `checkInterval` in the Lobster Command Center settings, those values take priority over any learned thresholds. The heartbeat reads `strategy.*` from `monadly-positions.json` at the start of every cycle.
+
+---
 
 ### Strategy Control Commands
 

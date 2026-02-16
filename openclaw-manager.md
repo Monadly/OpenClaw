@@ -1,14 +1,13 @@
 # 🦞 OpenClaw Integration Manager
 
-> **Status**: Phase 1 (Dual Transport) — Implementation Complete
+> **Status**: Phase 4 Complete — All features implemented
 > **Last Updated**: 2026-02-15
-> **Plan**: `/root/.claude/plans/iterative-floating-corbato.md`
 
 ---
 
 ## Overview
 
-Dual transport system for sending DeFi commands from Monadly UI to user's OpenClaw instance. Users choose their preferred transport method in `/openclaw` settings:
+Dual transport system for sending DeFi commands from Monadly UI to user's OpenClaw instance. Users choose their preferred transport method in `/openclaw/settings`:
 
 1. **Tailscale Direct** — Browser → OpenClaw via private Tailscale network (zero trust, most secure)
 2. **Telegram** — Browser → Monadly API → Telegram Bot API → OpenClaw (easiest setup)
@@ -42,7 +41,7 @@ Browser (monadly.xyz)   │                                  │
   │                     │   never stored on server)        │
   │                     └──────────────────────────────────┘
   │
-  └── User chooses transport in /openclaw settings
+  └── User chooses transport in /openclaw/settings
 ```
 
 ### Storage Model
@@ -67,14 +66,14 @@ Browser (monadly.xyz)   │                                  │
 ### Phase 1: Dual Transport (Complete)
 
 #### 1.1 Telegram Proxy API Route
-- [x] Create `/root/Monadly/src/app/api/openclaw/send/route.ts`
+- [x] Create `OpenClaw/src/telegram-proxy.ts`
   - [x] Accept `{ botToken, chatId, message }` POST body
   - [x] Validate inputs (token format, numeric chatId, message length)
   - [x] Proxy to `api.telegram.org/bot<token>/sendMessage`
   - [x] Map Telegram error codes to user-friendly messages
 
 #### 1.2 useBotCommand Hook (Rewrite)
-- [x] Rewrite `/root/Monadly/src/hooks/useBotCommand.ts`
+- [x] Rewrite `OpenClaw/src/useBotCommand.ts`
   - [x] Remove HMAC-SHA256 signing (replaced by `x-openclaw-token` header)
   - [x] Add `buildCommandMessage()` — natural language templates
   - [x] Add `sendViaTailscale()` — direct fetch to `/hooks/agent`
@@ -82,7 +81,7 @@ Browser (monadly.xyz)   │                                  │
   - [x] Transport-switching `sendCommand()` reads from localStorage
 
 #### 1.3 useOpenClawConfig Hook (Rewrite)
-- [x] Rewrite `/root/Monadly/src/hooks/useOpenClawConfig.ts`
+- [x] Rewrite `OpenClaw/src/useOpenClawConfig.ts`
   - [x] `Transport` type: `'tailscale' | 'telegram'`
   - [x] Dual credential storage (Tailscale URL+token, Telegram botToken+chatId)
   - [x] Transport-aware `configured` logic
@@ -90,7 +89,7 @@ Browser (monadly.xyz)   │                                  │
   - [x] Cross-tab sync via CustomEvent + StorageEvent
 
 #### 1.4 Settings Page (Rewrite)
-- [x] Rewrite `/root/Monadly/src/app/openclaw/page.tsx`
+- [x] Rewrite `OpenClaw/src/settings-page.tsx`
   - [x] Transport selector cards (Tailscale vs Telegram)
   - [x] Tailscale config section (token + URL)
   - [x] Telegram config section (bot token + chat ID)

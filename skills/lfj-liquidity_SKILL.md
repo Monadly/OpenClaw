@@ -1,5 +1,7 @@
 ---
 name: lfj-liquidity
+version: "0.9"
+date: 2026-02-16
 description: |
   Execute liquidity operations on LFJ (Liquidity Book / Trader Joe) DEX on Monad (Chain ID: 143).
   Add, remove, and rebalance liquidity positions using Monad Foundry's cast CLI. Includes all LFJ V2.2

@@ -1,5 +1,7 @@
 ---
 name: kuru-swap
+version: "0.9"
+date: 2026-02-16
 description: |
   Execute token swaps on Monad via Kuru Flow aggregator.
   Kuru Flow routes through all Kuru CLOB markets to find optimal swap paths.

@@ -101,7 +101,7 @@ function notifyConfigChanged() {
 export function useOpenClawConfig() {
   const [config, setConfig] = useState<OpenClawConfig>({
     configured: false,
-    transport: 'telegram',
+    transport: 'tailscale',
     showCommands: true,
     openclawUrl: null,
     openclawToken: null,
@@ -116,7 +116,12 @@ export function useOpenClawConfig() {
     if (typeof window === 'undefined') return;
 
     const loadConfig = () => {
-      const transport = (localStorage.getItem(STORAGE_KEYS.transport) as Transport) || 'telegram';
+      let transport = (localStorage.getItem(STORAGE_KEYS.transport) as Transport) || 'tailscale';
+      // Migrate: Telegram transport is disabled (coming soon) — force to tailscale
+      if (transport === 'telegram') {
+        transport = 'tailscale';
+        localStorage.setItem(STORAGE_KEYS.transport, 'tailscale');
+      }
       const openclawUrl = localStorage.getItem(STORAGE_KEYS.openclawUrl);
       const openclawToken = localStorage.getItem(STORAGE_KEYS.openclawToken);
       const botToken = localStorage.getItem(STORAGE_KEYS.botToken);
@@ -253,7 +258,7 @@ export function useOpenClawConfig() {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     setConfig({
       configured: false,
-      transport: 'telegram',
+      transport: 'tailscale',
       showCommands: true,
       openclawUrl: null,
       openclawToken: null,

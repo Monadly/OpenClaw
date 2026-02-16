@@ -4,11 +4,24 @@
 
 ---
 
+> **BETA SOFTWARE — USE AT YOUR OWN RISK**
+>
+> OpenClaw is in active development. While every skill includes simulation, safety checks, and confirmation prompts, **this is beta software interacting with real funds on-chain.** Exercise maximum caution:
+>
+> - **Wallet security is your responsibility.** Use a dedicated wallet for OpenClaw — never your main holdings. Follow the practices in `security-hardening_SKILL.md`.
+> - **Keep OpenClaw up to date.** We continuously improve safety standards, fix edge cases, and harden the skills. Running outdated versions means missing critical security updates.
+> - **Start small.** Test with amounts you can afford to lose. Increase capital only after you're confident in your setup.
+> - **Follow [@DavideFi](https://x.com/DavideFi) on X** for release announcements, security advisories, and product updates.
+>
+> DeFi carries inherent risks — smart contract bugs, impermanent loss, oracle failures, and market volatility can all cause loss of funds. OpenClaw reduces operational risk but cannot eliminate protocol-level risk.
+
+---
+
 ## How It Works
 
 OpenClaw is a set of **skill files** that teach an AI agent (Claude Code, or any compatible LLM) how to interact with DeFi protocols on Monad. No SDK, no TypeScript library — just structured markdown instructions that the agent reads and executes using `cast` (Foundry CLI) and `curl`.
 
-```
+```text
 You (natural language) ──> AI Agent ──> Reads SKILL.md ──> Executes on-chain via cast/curl
 ```
 
@@ -18,14 +31,14 @@ You (natural language) ──> AI Agent ──> Reads SKILL.md ──> Executes 
 
 **1. Direct Skills** — Load any skill file into your AI coding agent (Claude Code, Cursor, etc.) and give it commands. The agent reads the SKILL.md and knows exactly what to do.
 
-```
+```text
 "Swap 10 MON for USDC on Kuru"
 → Agent reads kuru-swap_SKILL.md → Gets quote → Simulates → Executes
 ```
 
 **2. Lobster Command Center** — The [Monadly dashboard](https://monadly.xyz) has a built-in command center that lets you configure multi-pool strategies visually. It generates the exact message format the agent expects, then sends it via Tailscale or Telegram.
 
-```
+```text
 Dashboard UI ──> Builds strategy message ──> Sends to bot ──> Bot parses & executes autonomously
 ```
 
@@ -114,6 +127,21 @@ OpenClaw/
   protocol.md                # Wire protocol specification
   openclaw-manager.md         # Bot lifecycle management
 ```
+
+---
+
+## Live Data Feed — `openclaw.txt`
+
+The agent's primary data source is [monadly.xyz/openclaw.txt](https://monadly.xyz/openclaw.txt) — a markdown file generated every 10 minutes from Monadly's aggregated on-chain data. It contains:
+
+- **Top 10 by Bestly Score** — 7-day real return after impermanent loss. Positive = LPs made money.
+- **Top 10 by APR** — Highest raw yield (with warnings about IL risk).
+- **Top 10 by TVL** — Most liquid, safest pools.
+- **Notes for AI Agents** — How to interpret the data, suggested actions, data freshness.
+
+Each pool entry includes: pair name, DEX, Bestly 7D return, APR, TVL, and deposit link. The file is markdown because LLMs read it naturally without parsing — the agent reasons about the rankings directly.
+
+The generator that produces this file is [`generators/pools-md.ts`](generators/pools-md.ts).
 
 ---
 

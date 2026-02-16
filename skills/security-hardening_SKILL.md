@@ -1,5 +1,7 @@
 ---
 name: security-hardening
+version: "0.9"
+date: 2026-02-16
 description: |
   Defense-in-depth security hardening and incident response for Monadly DeFi operations on Monad.
   Private key deep hardening (shell history, process list, clipboard, screen recording, Foundry keystore),

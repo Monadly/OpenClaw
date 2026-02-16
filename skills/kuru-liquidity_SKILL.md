@@ -1,5 +1,7 @@
 ---
 name: kuru-liquidity
+version: "0.9"
+date: 2026-02-16
 description: |
   Deploy and manage liquidity in Kuru AMM Vaults on Monad.
   Kuru vaults are ERC20-based AMM pools with automatic market-making —

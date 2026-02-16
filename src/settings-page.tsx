@@ -280,13 +280,14 @@ export default function OpenClawSettingsPage() {
             />
             <TransportCard
               transport="telegram"
-              selected={config.transport === 'telegram'}
+              selected={false}
               icon={<Send className="w-5 h-5" />}
               title="Telegram"
-              badge="Easiest Setup"
-              description="Commands sent via Telegram Bot API. Works from anywhere, no network setup."
-              onSelect={() => setTransport('telegram')}
+              badge="Coming Soon"
+              description="Browser-to-Telegram integration is in development. For now, use the Copy button in the Command Center to send strategies manually."
+              onSelect={() => {}}
               accentColor={ACCENT_COLOR}
+              disabled
             />
           </div>
 
@@ -868,19 +869,23 @@ interface TransportCardProps {
   description: string;
   onSelect: () => void;
   accentColor: string;
+  disabled?: boolean;
 }
 
-function TransportCard({ selected, icon, title, badge, description, onSelect, accentColor }: TransportCardProps) {
+function TransportCard({ selected, icon, title, badge, description, onSelect, accentColor, disabled }: TransportCardProps) {
   return (
     <button
-      onClick={onSelect}
+      onClick={disabled ? undefined : onSelect}
+      disabled={disabled}
       className={cn(
         'relative flex flex-col items-start gap-2 p-4 rounded-xl border transition-all text-left',
-        selected
-          ? 'border-2'
-          : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
+        disabled
+          ? 'border-white/5 bg-white/[0.01] opacity-50 cursor-not-allowed'
+          : selected
+            ? 'border-2'
+            : 'border-white/10 hover:border-white/20 bg-white/[0.02]'
       )}
-      style={selected ? {
+      style={selected && !disabled ? {
         borderColor: `${accentColor}60`,
         background: `linear-gradient(135deg, ${accentColor}12 0%, ${accentColor}05 100%)`,
         boxShadow: `0 0 24px ${accentColor}15`,
@@ -890,21 +895,21 @@ function TransportCard({ selected, icon, title, badge, description, onSelect, ac
         <div
           className="w-9 h-9 rounded-lg flex items-center justify-center"
           style={{
-            background: selected ? `${accentColor}25` : 'rgba(255,255,255,0.06)',
-            color: selected ? accentColor : 'rgba(255,255,255,0.5)',
+            background: selected && !disabled ? `${accentColor}25` : 'rgba(255,255,255,0.06)',
+            color: selected && !disabled ? accentColor : 'rgba(255,255,255,0.5)',
           }}
         >
           {icon}
         </div>
         <div className="flex-1">
-          <span className={cn('text-sm font-semibold', selected ? 'text-white' : 'text-white/70')}>{title}</span>
+          <span className={cn('text-sm font-semibold', selected && !disabled ? 'text-white' : 'text-white/70')}>{title}</span>
         </div>
         <span
           className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
           style={{
-            background: selected ? `${accentColor}20` : 'rgba(255,255,255,0.06)',
-            color: selected ? accentColor : 'rgba(255,255,255,0.4)',
-            border: `1px solid ${selected ? `${accentColor}30` : 'rgba(255,255,255,0.1)'}`,
+            background: selected && !disabled ? `${accentColor}20` : 'rgba(255,255,255,0.06)',
+            color: selected && !disabled ? accentColor : 'rgba(255,255,255,0.4)',
+            border: `1px solid ${selected && !disabled ? `${accentColor}30` : 'rgba(255,255,255,0.1)'}`,
           }}
         >
           {badge}

@@ -1,5 +1,7 @@
 ---
 name: clmm-liquidity
+version: "0.9"
+date: 2026-02-16
 description: |
   Manage concentrated liquidity (CLMM) positions on Uniswap V4, Uniswap V3, and PancakeSwap V3
   pools on Monad. Handles deploying new positions, reading position state, collecting fees,
