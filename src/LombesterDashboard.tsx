@@ -322,22 +322,19 @@ export const LombesterDashboard = forwardRef<HTMLDivElement, LombesterDashboardP
   // Strategy mode settings (visible when selectionMode === 'dynamic')
   const [checkInterval, setCheckInterval] = usePersistedState('lobster-check-interval', '10'); // always stored as minutes
   const [isCustomInterval, setIsCustomInterval] = useState(false); // true = user is typing in custom input
+  const [statusDismissed, setStatusDismissed] = useState(() => {
+    if (typeof window !== 'undefined') return sessionStorage.getItem('lobster-status-dismissed') === '1';
+    return false;
+  });
   const [intervalUnit, setIntervalUnit] = useState<'m' | 'h'>('m');
   const [statusReports, setStatusReports] = usePersistedState<'every-cycle' | 'actions-only'>('lobster-status-reports', 'every-cycle');
 
-  const { sendRawMessage, isLoading: isSendingCommand, connectionStatus } = useBotCommand();
+  const { sendRawMessage, isLoading: isSendingCommand, connectionStatus, statusDetail } = useBotCommand();
   const { chainId, chainName } = useChain();
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Format Helpers
   // ─────────────────────────────────────────────────────────────────────────────
-
-  const formatUSD = useCallback((value: number | null | undefined) => {
-    if (value == null || !isFinite(value)) return '—';
-    if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
-    if (value >= 1_000) return `$${(value / 1_000).toFixed(1)}K`;
-    return `$${value.toFixed(0)}`;
-  }, []);
 
   const formatPercent = useCallback((value: number | null) => {
     if (value === null) return '—';
@@ -388,7 +385,7 @@ export const LombesterDashboard = forwardRef<HTMLDivElement, LombesterDashboardP
       const intervalText = mins >= 60 && mins % 60 === 0
         ? `${mins / 60} hour${mins / 60 === 1 ? '' : 's'}`
         : `${mins} minutes`;
-      const statusText = statusReports === 'every-cycle' ? 'Every cycle' : 'On actions only';
+      const statusText = statusReports === 'every-cycle' ? 'Every interval' : 'When taking action';
 
       let message = `OpenClaw, start auto-managing my liquidity.
 
@@ -415,7 +412,9 @@ Currently the top pools are:
           ? { min: centralMinPercent, max: centralMaxPercent }
           : getPoolRange(pool.id);
         const poolVersion = pool.clmmVersion ? ` ${pool.clmmVersion.toUpperCase()}` : '';
+        const allocationPct = getPoolAllocation(pool.id);
         message += `${index + 1}. ${pool.poolPair} on ${pool.protocolName}${poolVersion} — ${metricDisplay === 'apr' ? `${pool.combinedAPR?.toFixed(0) ?? 'N/A'}% APR` : formatPercent(pool.normalizedBestlyReturn)}
+   Allocation: ${allocationPct}% of capital
    Pool Address: ${pool.poolAddress}
    ${isKuruVault ? 'Type: Vault (auto-managed spread, no range needed)' : `Range: ${poolRange.min}% to +${poolRange.max}%`}
    Fee Tier: ${pool.feePercent}% | TVL: $${pool.tvl?.toLocaleString() ?? 'N/A'} | APR: ${pool.combinedAPR?.toFixed(2) ?? 'N/A'}%
@@ -464,9 +463,10 @@ Position Settings:
         ? { min: centralMinPercent, max: centralMaxPercent }
         : getPoolRange(pool.id);
 
+      const allocationPct = getPoolAllocation(pool.id);
       const share = distributionMode === 'equal'
         ? `1/${totalPools} of ${balanceMode === 'all' ? 'wallet balance' : `$${fixedAmount}`}`
-        : 'custom allocation';
+        : `${allocationPct}% of ${balanceMode === 'all' ? 'wallet balance' : `$${fixedAmount}`}`;
 
       let rangeLines: string;
       if (isKuruVault) {
@@ -510,13 +510,18 @@ ${rangeLines}
     message += `\nSkills: Use /monadly-core for safety checks, then the appropriate DEX skill for execution.\nVerify all addresses against each skill's SKILL.md (Contract Addresses section) before transacting.`;
 
     return message;
-  }, [selectedPools, balanceMode, fixedAmount, distributionMode, rangeMode, centralMinPercent, centralMaxPercent, epochBehavior, metricDisplay, positionMode, rangeDynamic, rebalanceFreq, getPoolRange, isStrategyMode, checkInterval, statusReports, formatPercent, chainId, chainName]);
+  }, [selectedPools, balanceMode, fixedAmount, distributionMode, rangeMode, centralMinPercent, centralMaxPercent, epochBehavior, metricDisplay, positionMode, rangeDynamic, rebalanceFreq, getPoolRange, getPoolAllocation, isStrategyMode, checkInterval, statusReports, formatPercent, chainId, chainName]);
 
   const handleSendToOpenClaw = useCallback(() => {
+    if (connectionStatus === 'unconfigured') {
+      toast.error(statusDetail || 'No transport configured — set up Tailscale or Telegram in OpenClaw Settings.');
+      window.location.href = '/openclaw/settings';
+      return;
+    }
     const message = buildDeployMessage();
     sendRawMessage(message);
     phTrackLobsterSend({ poolCount: selectedPools.length, mode: isStrategyMode ? 'strategy' : 'manual' });
-  }, [buildDeployMessage, sendRawMessage, selectedPools.length, isStrategyMode]);
+  }, [buildDeployMessage, sendRawMessage, selectedPools.length, isStrategyMode, connectionStatus, statusDetail]);
 
   const handleCopyMessage = useCallback(async () => {
     try {
@@ -821,9 +826,10 @@ ${rangeLines}
                     ))}
                   </div>
                   {/* Custom interval input + unit toggle */}
-                  <div className="flex items-center p-0.5 rounded-lg" style={{ border: `1px solid ${isCustomInterval ? `${LOBSTER_COLOR}40` : 'rgba(255,255,255,0.08)'}`, backgroundColor: isCustomInterval ? `${LOBSTER_COLOR}08` : 'transparent' }}>
-                    <Input
+                  <div className="inline-flex items-center p-0.5 rounded-lg" style={{ border: `1px solid ${isCustomInterval ? `${LOBSTER_COLOR}40` : 'rgba(255,255,255,0.08)'}`, backgroundColor: isCustomInterval ? `${LOBSTER_COLOR}08` : 'transparent' }}>
+                    <input
                       type="text"
+                      inputMode="numeric"
                       value={isCustomInterval
                         ? (intervalUnit === 'h' ? String(Math.round(Number(checkInterval) / 60) || '') : checkInterval)
                         : ''
@@ -848,26 +854,33 @@ ${rangeLines}
                           setIsCustomInterval(false);
                         }
                       }}
-                      className={cn(
-                        'w-auto h-6 px-1 border-0 bg-transparent rounded-md text-[11px] md:text-[11px] text-center font-medium focus-visible:ring-0 shadow-none transition-all',
-                        isCustomInterval ? 'min-w-[1.75rem]' : 'min-w-[1.25rem]'
-                      )}
-                      size={isCustomInterval ? Math.max(2, String(intervalUnit === 'h' ? Math.round(Number(checkInterval) / 60) || '' : checkInterval).length) : 1}
-                      style={{ color: isCustomInterval ? LOBSTER_COLOR : 'rgba(255,255,255,0.3)' }}
+                      className="h-6 border-0 bg-transparent rounded-md text-[11px] text-right font-medium outline-none transition-all placeholder:text-white/30"
+                      style={{
+                        color: isCustomInterval ? LOBSTER_COLOR : 'rgba(255,255,255,0.3)',
+                        width: `${Math.max(1, (isCustomInterval ? String(intervalUnit === 'h' ? Math.round(Number(checkInterval) / 60) || '' : checkInterval).length : 1)) + 0.5}ch`,
+                        paddingLeft: '0.25ch',
+                        paddingRight: '0.25ch',
+                      }}
                     />
                     <button
                       type="button"
-                      onClick={() => setIntervalUnit(intervalUnit === 'm' ? 'h' : 'm')}
-                      className="h-6 px-1.5 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97] select-none"
+                      onClick={() => {
+                        if (!isCustomInterval) {
+                          setIsCustomInterval(true);
+                          return;
+                        }
+                        setIntervalUnit(intervalUnit === 'm' ? 'h' : 'm');
+                      }}
+                      className="h-6 px-1 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97] select-none"
                       style={{ color: isCustomInterval ? LOBSTER_COLOR : 'rgba(255,255,255,0.3)' }}
-                      title={`Switch to ${intervalUnit === 'm' ? 'hours' : 'minutes'}`}
+                      title={isCustomInterval ? `Switch to ${intervalUnit === 'm' ? 'hours' : 'minutes'}` : 'Set custom interval'}
                     >
-                      {intervalUnit === 'm' ? 'min' : 'h'}
+                      {intervalUnit === 'm' ? 'min' : 'hours'}
                     </button>
                   </div>
                 </div>
 
-                <span className="text-xs font-semibold text-white/70 mt-1">Status Reports</span>
+                <span className="text-xs font-semibold text-white/70 mt-1">Notify me</span>
                 <div className="flex items-center p-0.5 glass rounded-lg">
                   <button
                     type="button"
@@ -878,7 +891,7 @@ ${rangeLines}
                     )}
                     style={statusReports === 'every-cycle' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
                   >
-                    Every cycle
+                    Every interval
                   </button>
                   <button
                     type="button"
@@ -889,7 +902,7 @@ ${rangeLines}
                     )}
                     style={statusReports === 'actions-only' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
                   >
-                    Actions only
+                    When taking action
                   </button>
                 </div>
               </>
@@ -942,7 +955,7 @@ ${rangeLines}
                 <p>Range: {rangeMode === 'same' ? <><span style={{ color: LOBSTER_COLOR }}>{centralMinPercent}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{centralMaxPercent}%</span></> : <span style={{ color: LOBSTER_COLOR }}>Custom per-pool ranges</span>}, <span style={{ color: LOBSTER_COLOR }}>{rangeDynamic === 'fixed' ? 'fixed' : 'follow price'}</span> mode.</p>
                 <p>Check every <span style={{ color: LOBSTER_COLOR }}>{(() => { const m = Number(checkInterval); return m >= 60 && m % 60 === 0 ? `${m / 60}h` : `${m} min`; })()}</span>, rebalance <span style={{ color: LOBSTER_COLOR }}>{rangeDynamic === 'fixed' ? 'never' : rebalanceFreq === 'every-check' ? 'every check' : 'when out of range'}</span>.</p>
                 <p>At epoch end: <span style={{ color: LOBSTER_COLOR }}>{epochBehavior === 'withdraw' ? 'withdraw' : epochBehavior === 'redeploy' ? 'redeploy to other pools' : 'remain in pool'}</span>.</p>
-                <p>Reports: <span style={{ color: LOBSTER_COLOR }}>{statusReports === 'every-cycle' ? 'every cycle' : 'actions only'}</span>.</p>
+                <p>Notify: <span style={{ color: LOBSTER_COLOR }}>{statusReports === 'every-cycle' ? 'every interval' : 'when taking action'}</span>.</p>
               </>
             ) : (
               <p>
@@ -953,11 +966,25 @@ ${rangeLines}
             {selectionMode === 'dynamic' ? (
               <>
                 <p className="text-white/40 text-[11px]">Currently the top pools by {metricDisplay === 'apr' ? 'APR' : 'Real Return'} are:</p>
-                {selectedPools.map((pool, index) => (
-                  <p key={pool.id} className="pl-2">
-                    {index + 1}. <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span> — {metricDisplay === 'apr' ? `${(pool.combinedAPR ?? 0).toFixed(0)}%` : formatPercent(pool.normalizedBestlyReturn)}
-                  </p>
-                ))}
+                {selectedPools.map((pool, index) => {
+                  const poolRange = rangeMode === 'same'
+                    ? { min: centralMinPercent, max: centralMaxPercent }
+                    : getPoolRange(pool.id);
+                  return (
+                    <p key={pool.id} className="pl-2">
+                      {index + 1}. <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span>
+                      {rangeMode === 'custom' && !isVaultPool(pool) && (() => {
+                        const fmtPrice = (p: number) => p >= 1 ? `$${p.toFixed(2)}` : `$${p.toFixed(4)}`;
+                        if (positionMode === 'fixed' && pool.priceX) {
+                          const lo = pool.priceX * (1 + poolRange.min / 100);
+                          const hi = pool.priceX * (1 + poolRange.max / 100);
+                          return <> — <span style={{ color: LOBSTER_COLOR }}>{fmtPrice(lo)}</span> to <span style={{ color: LOBSTER_COLOR }}>{fmtPrice(hi)}</span> <span className="text-white/30">({poolRange.min}% to +{poolRange.max}%)</span></>;
+                        }
+                        return <> — <span style={{ color: LOBSTER_COLOR }}>{poolRange.min}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{poolRange.max}%</span></>;
+                      })()}
+                    </p>
+                  );
+                })}
                 <p className="text-white/30 text-[11px]">Source: <a href="https://monadly.xyz/openclaw.txt" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50 transition-colors">https://monadly.xyz/openclaw.txt</a>&quot;</p>
               </>
             ) : (
@@ -994,13 +1021,9 @@ ${rangeLines}
                 color: LOBSTER_COLOR,
               }}
             >
-              {isStrategyMode ? 'Send Strategy' : 'Send to OpenClaw'}
-              {connectionStatus === 'connected' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              )}
-              {connectionStatus === 'error' && (
-                <span className="text-yellow-400 text-[11px] leading-none">⚠</span>
-              )}
+              {connectionStatus === 'unconfigured'
+                ? 'Configuration Required'
+                : isStrategyMode ? 'Send Strategy' : 'Send to OpenClaw'}
             </button>
             <button
               type="button"
@@ -1021,6 +1044,7 @@ ${rangeLines}
         </div>
 
       </div>
+
 
       {/* ═══════════════════════════════════════════════════════════════════════
           MANAGED POOLS LIST
@@ -1122,7 +1146,6 @@ ${rangeLines}
               <div className="hidden @7xl:flex w-[50px] shrink-0 items-end justify-center">
                 <span className="text-[11px] text-white/40">Wallet %</span>
               </div>
-              <div className="hidden @7xl:block w-[60px] shrink-0" />
               {/* Central Range Slider */}
               <div className="flex-1 min-w-0">
                 {/* Slider row */}
@@ -1274,10 +1297,6 @@ ${rangeLines}
                     />
                   </div>
 
-                  {/* TVL - FIXED WIDTH */}
-                  <div className="w-[60px] shrink-0 text-right">
-                    <span className="text-sm text-white/70">{formatUSD(pool.tvl)}</span>
-                  </div>
                   {/* Range Selector — wraps to full-width new line when narrow */}
                   {isKuruVault ? (
                     <div className="flex items-center gap-2 min-w-0 basis-full @7xl:basis-0 @7xl:flex-1">
@@ -1415,6 +1434,67 @@ ${rangeLines}
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Connection Status (Sonner-style toast at bottom) ────────────── */}
+      {/* Hidden when unconfigured — the Send button handles that case with a redirect to settings */}
+      {!statusDismissed && connectionStatus !== 'unconfigured' && (
+        <div
+          className="mt-3 flex items-center gap-2.5 rounded-lg border px-3.5 py-2.5 backdrop-blur-xl text-xs shadow-lg"
+          style={{
+            borderColor: connectionStatus === 'connected' ? 'rgba(52, 211, 153, 0.25)'
+              : connectionStatus === 'checking' ? 'rgba(250, 204, 21, 0.25)'
+              : 'rgba(248, 113, 113, 0.25)',
+            background: connectionStatus === 'connected'
+              ? 'linear-gradient(135deg, rgba(52, 211, 153, 0.12) 0%, rgba(52, 211, 153, 0.04) 100%)'
+              : connectionStatus === 'checking'
+                ? 'linear-gradient(135deg, rgba(250, 204, 21, 0.12) 0%, rgba(250, 204, 21, 0.04) 100%)'
+                : 'linear-gradient(135deg, rgba(248, 113, 113, 0.12) 0%, rgba(248, 113, 113, 0.04) 100%)',
+          }}
+        >
+          <span
+            className="w-2 h-2 rounded-full shrink-0 animate-pulse"
+            style={{
+              backgroundColor: connectionStatus === 'connected' ? '#34d399'
+                : connectionStatus === 'checking' ? '#facc15'
+                : '#f87171',
+              boxShadow: connectionStatus === 'connected' ? '0 0 6px rgba(52, 211, 153, 0.5)'
+                : connectionStatus === 'checking' ? '0 0 6px rgba(250, 204, 21, 0.5)'
+                : '0 0 6px rgba(248, 113, 113, 0.5)',
+            }}
+          />
+          <span className="flex-1 min-w-0">
+            {connectionStatus === 'connected' && (
+              <span className="text-emerald-400 font-medium">{statusDetail}</span>
+            )}
+            {connectionStatus === 'checking' && (
+              <span className="text-yellow-300 font-medium">{statusDetail}</span>
+            )}
+            {connectionStatus === 'error' && (
+              <span className="text-yellow-400 font-medium">
+                {statusDetail} —{' '}
+                <Link href="/openclaw/settings" className="underline decoration-yellow-400/40 hover:text-yellow-300 transition-colors">
+                  go to settings
+                </Link>
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            onClick={() => { setStatusDismissed(true); sessionStorage.setItem('lobster-status-dismissed', '1'); }}
+            className="shrink-0 p-0.5 rounded-md transition-colors hover:bg-white/10"
+            style={{
+              color: connectionStatus === 'connected' ? '#34d399'
+                : connectionStatus === 'checking' ? '#facc15'
+                : '#f87171',
+            }}
+            aria-label="Dismiss"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       )}
     </GlassBanner>

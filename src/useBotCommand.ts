@@ -190,6 +190,7 @@ export type ConnectionStatus = 'unconfigured' | 'checking' | 'connected' | 'erro
 export function useBotCommand() {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('unconfigured');
+  const [statusDetail, setStatusDetail] = useState('Loading connection status...');
   const checkRef = useRef(false);
 
   // Check connection health on mount and when config changes
@@ -204,18 +205,31 @@ export function useBotCommand() {
       const botToken = localStorage.getItem('openclawBotToken');
       const chatId = localStorage.getItem('openclawChatId');
 
-      // Not configured
-      if (transport === 'tailscale' && (!openclawUrl || !openclawToken)) {
-        setConnectionStatus('unconfigured');
-        return;
+      // Not configured — explain exactly what's missing
+      if (transport === 'tailscale') {
+        const missingFields: string[] = [];
+        if (!openclawUrl) missingFields.push('Tailscale URL');
+        if (!openclawToken) missingFields.push('auth token');
+        if (missingFields.length > 0) {
+          setConnectionStatus('unconfigured');
+          setStatusDetail(`Tailscale transport selected but missing ${missingFields.join(' and ')}`);
+          return;
+        }
       }
-      if (transport === 'telegram' && (!botToken || !chatId)) {
-        setConnectionStatus('unconfigured');
-        return;
+      if (transport === 'telegram') {
+        const missingFields: string[] = [];
+        if (!botToken) missingFields.push('Bot Token');
+        if (!chatId) missingFields.push('Chat ID');
+        if (missingFields.length > 0) {
+          setConnectionStatus('unconfigured');
+          setStatusDetail(`Telegram transport selected but missing ${missingFields.join(' and ')}`);
+          return;
+        }
       }
 
       if (transport === 'tailscale') {
         setConnectionStatus('checking');
+        setStatusDetail(`Pinging Tailscale endpoint at ${openclawUrl}...`);
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
         try {
@@ -226,14 +240,25 @@ export function useBotCommand() {
           });
           clearTimeout(timeout);
           // Any HTTP response = reachable (CORS preflight returns 204, auth errors return 401, etc.)
-          setConnectionStatus(res.ok || res.status === 204 || res.status === 401 || res.status === 405 ? 'connected' : 'error');
-        } catch {
+          if (res.ok || res.status === 204 || res.status === 401 || res.status === 405) {
+            setConnectionStatus('connected');
+            setStatusDetail(`Tailscale connected to ${openclawUrl}`);
+          } else {
+            setConnectionStatus('error');
+            setStatusDetail(`Tailscale endpoint returned HTTP ${res.status} — check that OpenClaw is running at ${openclawUrl}`);
+          }
+        } catch (err) {
           clearTimeout(timeout);
           setConnectionStatus('error');
+          const reason = err instanceof DOMException && err.name === 'AbortError'
+            ? 'request timed out after 5s — is the Tailscale node online?'
+            : 'host unreachable — check Tailscale is running and the URL is correct';
+          setStatusDetail(`Tailscale connection failed: ${reason}`);
         }
       } else {
         // Telegram: if credentials exist, assume connected (no way to ping without sending a message)
         setConnectionStatus('connected');
+        setStatusDetail('Telegram credentials configured — ready to send');
       }
     };
 
@@ -271,11 +296,13 @@ export function useBotCommand() {
 
     // Validate config for selected transport
     if (transport === 'tailscale' && (!openclawUrl || !openclawToken)) {
-      toast.error('OpenClaw not configured. Set your Tailscale URL and token first.');
+      const missing = [!openclawUrl && 'Tailscale URL', !openclawToken && 'auth token'].filter(Boolean).join(' and ');
+      toast.error(`Tailscale not configured — missing ${missing}. Set up in OpenClaw Settings.`);
       return { success: false, error: 'Not configured' };
     }
     if (transport === 'telegram' && (!botToken || !chatId)) {
-      toast.error('OpenClaw not configured. Set your Telegram bot token and chat ID first.');
+      const missing = [!botToken && 'Bot Token', !chatId && 'Chat ID'].filter(Boolean).join(' and ');
+      toast.error(`Telegram not configured — missing ${missing}. Set up in OpenClaw Settings.`);
       return { success: false, error: 'Not configured' };
     }
 
@@ -293,18 +320,25 @@ export function useBotCommand() {
       } else {
         await sendViaTelegram(botToken!, chatId!, message);
       }
-      toast.success('Command sent! Check Telegram for response.');
+      toast.success(`Command sent via ${transport === 'tailscale' ? 'Tailscale' : 'Telegram'}! Check Telegram for the response.`);
       setConnectionStatus('connected');
+      setStatusDetail(transport === 'tailscale' ? `Tailscale connected to ${openclawUrl}` : 'Telegram credentials configured — ready to send');
       return { success: true };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to send command';
-      toast.error(msg);
-      // Any Tailscale failure = connection problem, EXCEPT auth errors (401/403)
-      // which mean the network is reachable but the token is wrong
-      if (transport === 'tailscale' && !msg.includes('Invalid token')) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      const detail = transport === 'tailscale'
+        ? msg.includes('Invalid token')
+          ? `Tailscale auth failed — the token was rejected by ${openclawUrl}. Regenerate it in Settings.`
+          : msg.includes('timed out')
+            ? `Tailscale request timed out — OpenClaw at ${openclawUrl} is not responding. Check that the node is online.`
+            : `Tailscale send failed to ${openclawUrl}: ${msg}`
+        : `Telegram send failed: ${msg}`;
+      toast.error(detail);
+      if (transport === 'tailscale') {
         setConnectionStatus('error');
+        setStatusDetail(detail);
       }
-      return { success: false, error: msg };
+      return { success: false, error: detail };
     } finally {
       setIsLoading(false);
     }
@@ -321,11 +355,13 @@ export function useBotCommand() {
     const chatId = localStorage.getItem('openclawChatId');
 
     if (transport === 'tailscale' && (!openclawUrl || !openclawToken)) {
-      toast.error('OpenClaw not configured. Set your Tailscale URL and token first.');
+      const missing = [!openclawUrl && 'Tailscale URL', !openclawToken && 'auth token'].filter(Boolean).join(' and ');
+      toast.error(`Tailscale not configured — missing ${missing}. Set up in OpenClaw Settings.`);
       return { success: false, error: 'Not configured' };
     }
     if (transport === 'telegram' && (!botToken || !chatId)) {
-      toast.error('OpenClaw not configured. Set your Telegram bot token and chat ID first.');
+      const missing = [!botToken && 'Bot Token', !chatId && 'Chat ID'].filter(Boolean).join(' and ');
+      toast.error(`Telegram not configured — missing ${missing}. Set up in OpenClaw Settings.`);
       return { success: false, error: 'Not configured' };
     }
 
@@ -339,22 +375,29 @@ export function useBotCommand() {
       } else {
         await sendViaTelegram(botToken!, chatId!, message);
       }
-      toast.success('Command sent! Check Telegram for response.');
+      toast.success(`Strategy sent via ${transport === 'tailscale' ? 'Tailscale' : 'Telegram'}! Check Telegram for the response.`);
       setConnectionStatus('connected');
+      setStatusDetail(transport === 'tailscale' ? `Tailscale connected to ${openclawUrl}` : 'Telegram credentials configured — ready to send');
       return { success: true };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to send command';
-      toast.error(msg);
-      // Any Tailscale failure = connection problem, EXCEPT auth errors (401/403)
-      // which mean the network is reachable but the token is wrong
-      if (transport === 'tailscale' && !msg.includes('Invalid token')) {
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      const detail = transport === 'tailscale'
+        ? msg.includes('Invalid token')
+          ? `Tailscale auth failed — the token was rejected by ${openclawUrl}. Regenerate it in Settings.`
+          : msg.includes('timed out')
+            ? `Tailscale request timed out — OpenClaw at ${openclawUrl} is not responding. Check that the node is online.`
+            : `Tailscale send failed to ${openclawUrl}: ${msg}`
+        : `Telegram send failed: ${msg}`;
+      toast.error(detail);
+      if (transport === 'tailscale') {
         setConnectionStatus('error');
+        setStatusDetail(detail);
       }
-      return { success: false, error: msg };
+      return { success: false, error: detail };
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  return { sendCommand, sendRawMessage, isLoading, connectionStatus };
+  return { sendCommand, sendRawMessage, isLoading, connectionStatus, statusDetail };
 }
