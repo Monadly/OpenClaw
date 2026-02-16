@@ -107,7 +107,7 @@ export default function OpenClawSettingsPage() {
   };
 
   // Skills installation commands
-  const skillsDownloadCmd = 'mkdir -p ~/.openclaw/skills && git clone --depth 1 https://github.com/monadly/monadly.git /tmp/monadly-dl && cp -r /tmp/monadly-dl/OpenClaw/skills/* ~/.openclaw/skills/ && rm -rf /tmp/monadly-dl';
+  const skillsDownloadCmd = 'Download all Monadly DeFi skills from https://github.com/Monadly/OpenClaw/tree/main/skills into ~/.openclaw/skills/';
   const skillsNaturalCmd = 'Register my skills at ~/.openclaw/skills';
   const skillsCliCmd = 'openclaw config set skills.load.extraDirs \'["~/.openclaw/skills"]\'';
   const skillsJsonSnippet = `{
@@ -128,7 +128,7 @@ export default function OpenClawSettingsPage() {
   const copyDownloadCmd = async () => {
     await navigator.clipboard.writeText(skillsDownloadCmd);
     setCopiedDownload(true);
-    toast.success('Download command copied!');
+    toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedDownload(false), 2000);
   };
 
@@ -169,10 +169,6 @@ export default function OpenClawSettingsPage() {
             <p className="text-monad-purple-light/50 mt-1">
               Connect your AI trading bot to Monadly for seamless DeFi automation
             </p>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-            DEMO - Work in Progress
           </div>
         </div>
       </div>
@@ -554,13 +550,16 @@ export default function OpenClawSettingsPage() {
               { name: 'kuru-liquidity', desc: 'Kuru AMM Vault deposits' },
               { name: 'security-hardening', desc: 'Security & incident response' },
             ].map((skill) => (
-              <div
+              <a
                 key={skill.name}
-                className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10"
+                href={`https://github.com/Monadly/OpenClaw/blob/main/skills/${skill.name}_SKILL.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 rounded-lg bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.05] transition-colors"
               >
                 <p className="text-xs font-medium text-white/80">{skill.name}</p>
                 <p className="text-[10px] text-white/35 mt-0.5">{skill.desc}</p>
-              </div>
+              </a>
             ))}
           </div>
 
@@ -572,7 +571,7 @@ export default function OpenClawSettingsPage() {
             </div>
             <div className="rounded-lg bg-black/30 border border-white/10 p-3">
               <p className="text-[11px] text-white/50 mb-2">
-                Run this command to download all Monadly skills into your OpenClaw skills directory:
+                Tell your OpenClaw agent:
               </p>
               <div className="flex items-start gap-2">
                 <code className="flex-1 text-[11px] text-monad-cyan bg-black/40 px-3 py-2 rounded-lg overflow-x-auto whitespace-nowrap">

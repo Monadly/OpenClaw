@@ -422,6 +422,19 @@ Currently the top pools are:
 `;
       });
 
+      // Token address legend (deduplicated)
+      const tokenMap = new Map<string, string>();
+      selectedPools.forEach(pool => {
+        if (pool.tokenXAddress) tokenMap.set(pool.tokenXSymbol, pool.tokenXAddress);
+        if (pool.tokenYAddress) tokenMap.set(pool.tokenYSymbol, pool.tokenYAddress);
+      });
+      if (tokenMap.size > 0) {
+        message += `\nToken Addresses:\n`;
+        tokenMap.forEach((address, symbol) => {
+          message += `- ${symbol}: ${address}\n`;
+        });
+      }
+
       message += `\nSkills: Use /monadly-core for safety checks, then the appropriate DEX skill for execution.\nVerify all addresses against each skill's SKILL.md (Contract Addresses section) before transacting.`;
       return message;
     }
@@ -481,10 +494,23 @@ ${rangeLines}
 `;
     });
 
+    // Token address legend (deduplicated)
+    const tokenMap = new Map<string, string>();
+    selectedPools.forEach(pool => {
+      if (pool.tokenXAddress) tokenMap.set(pool.tokenXSymbol, pool.tokenXAddress);
+      if (pool.tokenYAddress) tokenMap.set(pool.tokenYSymbol, pool.tokenYAddress);
+    });
+    if (tokenMap.size > 0) {
+      message += `\nToken Addresses:\n`;
+      tokenMap.forEach((address, symbol) => {
+        message += `- ${symbol}: ${address}\n`;
+      });
+    }
+
     message += `\nSkills: Use /monadly-core for safety checks, then the appropriate DEX skill for execution.\nVerify all addresses against each skill's SKILL.md (Contract Addresses section) before transacting.`;
 
     return message;
-  }, [selectedPools, balanceMode, fixedAmount, distributionMode, rangeMode, centralMinPercent, centralMaxPercent, epochBehavior, metricDisplay, selectionMode, positionMode, rangeDynamic, rebalanceFreq, getPoolRange, isStrategyMode, checkInterval, statusReports, formatPercent, chainId, chainName]);
+  }, [selectedPools, balanceMode, fixedAmount, distributionMode, rangeMode, centralMinPercent, centralMaxPercent, epochBehavior, metricDisplay, positionMode, rangeDynamic, rebalanceFreq, getPoolRange, isStrategyMode, checkInterval, statusReports, formatPercent, chainId, chainName]);
 
   const handleSendToOpenClaw = useCallback(() => {
     const message = buildDeployMessage();
@@ -504,7 +530,7 @@ ${rangeLines}
 
 
   return (
-    <GlassBanner ref={ref} accentColor={LOBSTER_COLOR} padding="compact">
+    <GlassBanner ref={ref} accentColor={LOBSTER_COLOR} padding="compact" className="@container">
       {/* ═══════════════════════════════════════════════════════════════════════
           HEADER
           ═══════════════════════════════════════════════════════════════════════ */}
@@ -517,8 +543,19 @@ ${rangeLines}
         </div>
         <div className="flex-1 flex items-center justify-end gap-2">
           <Link
+            href="/openclaw"
+            className="h-8 px-3 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-[0.97] border hover:brightness-110 inline-flex items-center gap-1.5"
+            style={{
+              backgroundColor: `${LOBSTER_COLOR}15`,
+              borderColor: `${LOBSTER_COLOR}30`,
+              color: LOBSTER_COLOR,
+            }}
+          >
+            About
+          </Link>
+          <Link
             href="/openclaw/settings"
-            className="h-8 px-3 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-[0.97] border hover:brightness-110 inline-flex items-center gap-1.5"
+            className="h-8 px-3 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-[0.97] border hover:brightness-110 inline-flex items-center gap-1.5"
             style={{
               backgroundColor: `${LOBSTER_COLOR}15`,
               borderColor: `${LOBSTER_COLOR}30`,
@@ -549,14 +586,10 @@ ${rangeLines}
       {/* ═══════════════════════════════════════════════════════════════════════
           MAIN CONTROLS ROW
           ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col xl:flex-row items-start gap-6">
-        {/* ─────────────────────────────────────────────────────────────────────
-            LEFT: Toggles
-            ───────────────────────────────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-6 shrink-0">
-          {/* Deploy Liquidity Column */}
-          <div className="flex flex-col gap-1.5 items-center">
-            <span className="text-[11px] font-semibold text-white/70">Deploy Liquidity</span>
+      <div className="flex flex-wrap @7xl:flex-nowrap items-start gap-6">
+        {/* Deploy Liquidity Column */}
+        <div className="flex flex-col gap-1.5 items-center shrink-0">
+            <span className="text-xs font-semibold text-white/70">Deploy Liquidity</span>
 
             {/* Dynamic / Manual Toggle */}
             <div className="flex items-center p-0.5 glass rounded-lg">
@@ -567,7 +600,7 @@ ${rangeLines}
                   onSelectTopPools?.(poolCount);
                 }}
                 className={cn(
-                  'h-7 px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                  'h-7 px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   selectionMode === 'dynamic' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                 )}
                 style={selectionMode === 'dynamic' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -578,7 +611,7 @@ ${rangeLines}
                 type="button"
                 onClick={() => setSelectionMode('manual')}
                 className={cn(
-                  'h-7 px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                  'h-7 px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   selectionMode === 'manual' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                 )}
                 style={selectionMode === 'manual' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -589,7 +622,7 @@ ${rangeLines}
 
             {/* Pool Count Slider */}
             <div className="flex flex-col items-center w-32">
-              <span className="text-[11px] text-white/60 mb-2">
+              <span className="text-xs text-white/60 mb-2">
                 {selectionMode === 'manual'
                   ? `${poolCount} selected ${poolCount === 1 ? 'pool' : 'pools'}`
                   : `Top ${poolCount} ${poolCount === 1 ? 'pool' : 'pools'}`
@@ -609,14 +642,14 @@ ${rangeLines}
                 step={1}
                 className="w-full [&_[data-slot=slider-track]]:bg-white/10 [&_[data-slot=slider-range]]:bg-[#FF6B35] [&_[data-slot=slider-thumb]]:border-[#FF6B35] [&_[data-slot=slider-thumb]]:bg-monad-navy [&_[data-slot=slider-thumb]]:shadow-[0_0_8px_#FF6B3560] [&_[data-slot=slider-thumb]]:ring-0 [&_[data-slot=slider-thumb]]:focus-visible:ring-0"
               />
-              <div className="flex justify-between w-full text-[10px] text-white/40 mt-1">
+              <div className="flex justify-between w-full text-[11px] text-white/40 mt-1">
                 <span>1</span>
                 <span>10</span>
               </div>
             </div>
 
             {/* Sorted By label — greyed out in manual mode */}
-            <span className={cn('text-[11px] mt-1', selectionMode === 'manual' ? 'text-white/25' : 'text-white/50')}>Sorted by</span>
+            <span className={cn('text-xs mt-1', selectionMode === 'manual' ? 'text-white/25' : 'text-white/50')}>Sorted by</span>
 
             {/* Metric Display Toggle — disabled in manual mode */}
             <div className={cn('flex items-center p-0.5 glass rounded-lg', selectionMode === 'manual' && 'opacity-40 pointer-events-none')}>
@@ -627,7 +660,7 @@ ${rangeLines}
                   onSortChange?.('normalizedBestlyReturn');
                 }}
                 className={cn(
-                  'h-7 min-w-[70px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                  'h-7 min-w-[70px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   metricDisplay === 'realReturn' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                 )}
                 style={metricDisplay === 'realReturn' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -641,7 +674,7 @@ ${rangeLines}
                   onSortChange?.('combinedAPR');
                 }}
                 className={cn(
-                  'h-7 min-w-[70px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                  'h-7 min-w-[70px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   metricDisplay === 'apr' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                 )}
                 style={metricDisplay === 'apr' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -651,9 +684,9 @@ ${rangeLines}
             </div>
           </div>
 
-          {/* Wallet Settings Column (renamed from Wallet Balance) */}
-          <div className="flex flex-col gap-1.5 items-start">
-            <span className="text-[11px] font-semibold text-white/70">Wallet Settings</span>
+        {/* Wallet Settings Column */}
+        <div className="flex flex-col gap-1.5 items-start shrink-0">
+            <span className="text-xs font-semibold text-white/70">Wallet Settings</span>
 
             {/* Deploy Amount */}
             <RadioGroup
@@ -670,7 +703,7 @@ ${rangeLines}
                 <label
                   htmlFor="deploy-all"
                   className={cn(
-                    'text-[11px] cursor-pointer select-none',
+                    'text-xs cursor-pointer select-none',
                     balanceMode === 'all' ? 'text-white/80' : 'text-white/50'
                   )}
                 >
@@ -689,21 +722,21 @@ ${rangeLines}
                 <label
                   htmlFor="deploy-fixed"
                   className={cn(
-                    'text-[11px] cursor-pointer select-none',
+                    'text-xs cursor-pointer select-none',
                     balanceMode === 'fixed' ? 'text-white/80' : 'text-white/50'
                   )}
                 >
                   Deploy
                 </label>
                 <div className="flex items-center gap-0.5">
-                  <span className={cn('text-[11px]', balanceMode === 'fixed' ? 'text-white/60' : 'text-white/30')}>$</span>
+                  <span className={cn('text-xs', balanceMode === 'fixed' ? 'text-white/60' : 'text-white/30')}>$</span>
                   <Input
                     type="text"
                     value={fixedAmount}
                     onFocus={() => setBalanceMode('fixed')}
                     onChange={(e) => setFixedAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                     className={cn(
-                      'w-14 h-6 px-1.5 rounded-md text-[11px] md:text-[11px] text-white text-center focus:outline-none focus-visible:ring-0 shadow-none transition-colors',
+                      'w-14 h-6 px-1.5 rounded-md text-xs md:text-sm text-white text-center focus:outline-none focus-visible:ring-0 shadow-none transition-colors',
                       balanceMode !== 'fixed' && 'opacity-40'
                     )}
                     style={{
@@ -716,7 +749,7 @@ ${rangeLines}
             </RadioGroup>
 
             {/* Rebalancing Trigger — subheader styled like "Wallet Settings" */}
-            <span className="text-[11px] font-semibold text-white/70 mt-1">Rebalancing Trigger</span>
+            <span className="text-xs font-semibold text-white/70 mt-1">Rebalancing Trigger</span>
             <RadioGroup
               value={rangeDynamic === 'fixed' ? 'none' : rebalanceFreq}
               onValueChange={(val) => {
@@ -745,7 +778,7 @@ ${rangeLines}
                     <label
                       htmlFor={`rebal-${option.value}`}
                       className={cn(
-                        'text-[11px] cursor-pointer select-none',
+                        'text-xs cursor-pointer select-none',
                         selected === option.value ? 'text-white/80' : 'text-white/50'
                       )}
                     >
@@ -758,12 +791,12 @@ ${rangeLines}
 
           </div>
 
-          {/* Column 3: Strategy Timing + Epoch Behavior */}
-          <div className="flex flex-col gap-1.5 items-start">
+        {/* Column 3: Strategy Timing + Epoch Behavior */}
+        <div className="flex flex-col gap-1.5 items-start shrink-0">
             {/* Strategy controls — visible in dynamic mode */}
             {isStrategyMode && (
               <>
-                <span className="text-[11px] font-semibold text-white/70">
+                <span className="text-xs font-semibold text-white/70">
                   {rebalanceFreq === 'every-check' && rangeDynamic !== 'fixed' ? 'Rebalancing Interval' : 'Check Interval'}
                 </span>
                 <div className="flex items-center gap-1">
@@ -778,7 +811,7 @@ ${rangeLines}
                         key={opt.value}
                         onClick={() => { setCheckInterval(opt.value); setIsCustomInterval(false); }}
                         className={cn(
-                          'h-6 px-2 rounded-md text-[10px] font-medium transition-all duration-200 active:scale-[0.97]',
+                          'h-6 px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
                           !isCustomInterval && checkInterval === opt.value ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                         )}
                         style={!isCustomInterval && checkInterval === opt.value ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -816,7 +849,7 @@ ${rangeLines}
                         }
                       }}
                       className={cn(
-                        'w-auto h-6 px-1 border-0 bg-transparent rounded-md text-[10px] md:text-[10px] text-center font-medium focus-visible:ring-0 shadow-none transition-all',
+                        'w-auto h-6 px-1 border-0 bg-transparent rounded-md text-[11px] md:text-[11px] text-center font-medium focus-visible:ring-0 shadow-none transition-all',
                         isCustomInterval ? 'min-w-[1.75rem]' : 'min-w-[1.25rem]'
                       )}
                       size={isCustomInterval ? Math.max(2, String(intervalUnit === 'h' ? Math.round(Number(checkInterval) / 60) || '' : checkInterval).length) : 1}
@@ -825,7 +858,7 @@ ${rangeLines}
                     <button
                       type="button"
                       onClick={() => setIntervalUnit(intervalUnit === 'm' ? 'h' : 'm')}
-                      className="h-6 px-1.5 rounded-md text-[10px] font-medium transition-all duration-200 active:scale-[0.97] select-none"
+                      className="h-6 px-1.5 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97] select-none"
                       style={{ color: isCustomInterval ? LOBSTER_COLOR : 'rgba(255,255,255,0.3)' }}
                       title={`Switch to ${intervalUnit === 'm' ? 'hours' : 'minutes'}`}
                     >
@@ -834,13 +867,13 @@ ${rangeLines}
                   </div>
                 </div>
 
-                <span className="text-[11px] font-semibold text-white/70 mt-1">Status Reports</span>
+                <span className="text-xs font-semibold text-white/70 mt-1">Status Reports</span>
                 <div className="flex items-center p-0.5 glass rounded-lg">
                   <button
                     type="button"
                     onClick={() => setStatusReports('every-cycle')}
                     className={cn(
-                      'h-6 px-2 rounded-md text-[10px] font-medium transition-all duration-200 active:scale-[0.97]',
+                      'h-6 px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
                       statusReports === 'every-cycle' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                     )}
                     style={statusReports === 'every-cycle' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -851,7 +884,7 @@ ${rangeLines}
                     type="button"
                     onClick={() => setStatusReports('actions-only')}
                     className={cn(
-                      'h-6 px-2 rounded-md text-[10px] font-medium transition-all duration-200 active:scale-[0.97]',
+                      'h-6 px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
                       statusReports === 'actions-only' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                     )}
                     style={statusReports === 'actions-only' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -863,7 +896,7 @@ ${rangeLines}
             )}
 
             {/* At Epoch End — always visible */}
-            <span className={cn("text-[11px] font-semibold text-white/70", isStrategyMode && "mt-1")}>At Epoch End</span>
+            <span className={cn("text-xs font-semibold text-white/70", isStrategyMode && "mt-1")}>At Epoch End</span>
             <RadioGroup
               value={epochBehavior}
               onValueChange={(val) => setEpochBehavior(val as EpochEndBehavior)}
@@ -883,7 +916,7 @@ ${rangeLines}
                   <label
                     htmlFor={`epoch-${option.value}`}
                     className={cn(
-                      'text-[11px] cursor-pointer select-none',
+                      'text-xs cursor-pointer select-none',
                       epochBehavior === option.value ? 'text-white/80' : 'text-white/50'
                     )}
                   >
@@ -893,17 +926,15 @@ ${rangeLines}
               ))}
             </RadioGroup>
           </div>
-        </div>
 
         {/* Divider */}
-        <div className="hidden xl:block w-px self-stretch" style={{ backgroundColor: `${LOBSTER_COLOR}30` }} />
+        <div className="hidden @7xl:block w-px self-stretch" style={{ backgroundColor: `${LOBSTER_COLOR}30` }} />
 
         {/* ─────────────────────────────────────────────────────────────────────
             Command Preview & Pool List & Buttons
             ───────────────────────────────────────────────────────────────────── */}
-        <div className="w-full xl:flex-1 flex flex-col sm:flex-row gap-6 min-w-0 items-start">
-          {/* Column 4: Command summary */}
-          <div className="flex-1 text-[11px] text-white/60 leading-snug select-none space-y-0.5 min-w-0">
+        {/* Column 4: Command summary */}
+        <div className="@7xl:flex-1 text-xs text-white/60 leading-snug select-none space-y-0.5 min-w-0">
             {isStrategyMode ? (
               <>
                 <p className="text-white/70 font-semibold">&quot;OpenClaw, start auto-managing my liquidity.</p>
@@ -918,23 +949,20 @@ ${rangeLines}
                 &quot;OpenClaw, deploy <span style={{ color: LOBSTER_COLOR }}>{balanceMode === 'all' ? 'my entire wallet balance' : `$${fixedAmount}`}</span> across <span style={{ color: LOBSTER_COLOR }}>{selectedPools.length}</span> selected pools, <span style={{ color: LOBSTER_COLOR }}>{distributionMode === 'equal' ? 'equally distributed' : 'with custom allocation'}</span>, using {positionMode === 'percent' ? <>{rangeMode === 'same' ? <>a <span style={{ color: LOBSTER_COLOR }}>{centralMinPercent}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{centralMaxPercent}%</span> range</> : <span style={{ color: LOBSTER_COLOR }}>custom per-pool ranges</span>}</> : <>fixed $ value positions</>} with <span style={{ color: LOBSTER_COLOR }}>{rangeDynamic === 'fixed' ? 'fixed' : 'follow price'}</span> mode{rangeDynamic === 'follow' && <>, rebalancing <span style={{ color: LOBSTER_COLOR }}>{rebalanceFreq === 'every-check' ? 'every check' : 'when out of range'}</span></>}. At epoch end, <span style={{ color: LOBSTER_COLOR }}>{epochBehavior === 'withdraw' ? 'withdraw and keep aside' : epochBehavior === 'redeploy' ? 'use liquidity on other pools' : 'remain in the pool'}</span>.&quot;
               </p>
             )}
-          </div>
 
-          {/* Column 5: Pool list */}
-          <div className="flex-1 text-[11px] text-white/60 leading-snug select-none min-w-0">
             {selectionMode === 'dynamic' ? (
               <>
-                <p className="text-white/40 text-[10px]">Currently the top pools by {metricDisplay === 'apr' ? 'APR' : 'Real Return'} are:</p>
+                <p className="text-white/40 text-[11px]">Currently the top pools by {metricDisplay === 'apr' ? 'APR' : 'Real Return'} are:</p>
                 {selectedPools.map((pool, index) => (
                   <p key={pool.id} className="pl-2">
                     {index + 1}. <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span> — {metricDisplay === 'apr' ? `${(pool.combinedAPR ?? 0).toFixed(0)}%` : formatPercent(pool.normalizedBestlyReturn)}
                   </p>
                 ))}
-                <p className="text-white/30 text-[10px]">Source: <a href="https://monadly.xyz/openclaw.txt" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50 transition-colors">https://monadly.xyz/openclaw.txt</a>&quot;</p>
+                <p className="text-white/30 text-[11px]">Source: <a href="https://monadly.xyz/openclaw.txt" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/50 transition-colors">https://monadly.xyz/openclaw.txt</a>&quot;</p>
               </>
             ) : (
               <>
-                <p className="text-white/40 text-[10px]">Pool Deployment:</p>
+                <p className="text-white/40 text-[11px]">Pool Deployment:</p>
                 {selectedPools.map((pool, index) => {
                   const isKuruVault = isVaultPool(pool);
                   const poolRange = rangeMode === 'same' ? { min: centralMinPercent, max: centralMaxPercent } : getPoolRange(pool.id);
@@ -953,13 +981,13 @@ ${rangeLines}
               </>
             )}
           </div>
-          {/* Buttons - right side */}
-          <div className="flex sm:flex-col flex-row gap-2 shrink-0">
+        {/* Buttons */}
+        <div className="flex flex-row justify-center @7xl:flex-col gap-2 basis-full @7xl:basis-auto @7xl:shrink-0">
             <button
               type="button"
               onClick={handleSendToOpenClaw}
               disabled={isSendingCommand || selectedPools.length === 0}
-              className="h-8 w-full px-3 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-50 border hover:brightness-110 flex items-center justify-center gap-1.5"
+              className="h-8 w-full px-3 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-50 border hover:brightness-110 flex items-center justify-center gap-1.5"
               style={{
                 backgroundColor: `${LOBSTER_COLOR}15`,
                 borderColor: `${LOBSTER_COLOR}30`,
@@ -971,14 +999,14 @@ ${rangeLines}
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               )}
               {connectionStatus === 'error' && (
-                <span className="text-yellow-400 text-[10px] leading-none">⚠</span>
+                <span className="text-yellow-400 text-[11px] leading-none">⚠</span>
               )}
             </button>
             <button
               type="button"
               onClick={handleCopyMessage}
               disabled={selectedPools.length === 0}
-              className="h-8 w-full px-3 rounded-lg text-xs font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-50 border hover:brightness-110 flex items-center justify-center gap-1.5"
+              className="h-8 w-full px-3 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-[0.97] disabled:opacity-50 border hover:brightness-110 flex items-center justify-center gap-1.5"
               style={{
                 backgroundColor: `${LOBSTER_COLOR}15`,
                 borderColor: `${LOBSTER_COLOR}30`,
@@ -990,7 +1018,6 @@ ${rangeLines}
               </svg>
               {isStrategyMode ? 'Copy strategy' : 'Copy full message'}
             </button>
-          </div>
         </div>
 
       </div>
@@ -1001,15 +1028,15 @@ ${rangeLines}
       {(selectedPools.length > 0 || unsupportedPools.length > 0) && (
         <div className="mt-4">
           {/* Liquidity Distribution + Range Mode + Position — always centered, single instance */}
-          <div className="flex flex-wrap items-start justify-center gap-4 mb-3">
+          <div className="flex items-start justify-center gap-4 mb-3">
             <div className="flex flex-col items-center">
-              <span className="text-[11px] text-white/50 mb-1">Liquidity Distribution</span>
+              <span className="text-xs text-white/50 mb-1">Liquidity Distribution</span>
               <div className="flex items-center p-0.5 glass rounded-lg">
                 <button
                   type="button"
                   onClick={() => setDistributionMode('equal')}
                   className={cn(
-                    'h-7 min-w-[55px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[55px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     distributionMode === 'equal' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={distributionMode === 'equal' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1020,7 +1047,7 @@ ${rangeLines}
                   type="button"
                   onClick={() => setDistributionMode('custom')}
                   className={cn(
-                    'h-7 min-w-[55px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[55px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     distributionMode === 'custom' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={distributionMode === 'custom' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1030,13 +1057,13 @@ ${rangeLines}
               </div>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[11px] text-white/50 mb-1">Range Mode</span>
+              <span className="text-xs text-white/50 mb-1">Range Mode</span>
               <div className="flex items-center p-0.5 glass rounded-lg">
                 <button
                   type="button"
                   onClick={() => setRangeMode('same')}
                   className={cn(
-                    'h-7 min-w-[70px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[70px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     rangeMode === 'same' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={rangeMode === 'same' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1047,7 +1074,7 @@ ${rangeLines}
                   type="button"
                   onClick={() => setRangeMode('custom')}
                   className={cn(
-                    'h-7 min-w-[70px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[70px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     rangeMode === 'custom' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={rangeMode === 'custom' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1057,13 +1084,13 @@ ${rangeLines}
               </div>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-[11px] text-white/50 mb-1">Position</span>
+              <span className="text-xs text-white/50 mb-1">Position</span>
               <div className="flex items-center p-0.5 glass rounded-lg">
                 <button
                   type="button"
                   onClick={() => setPositionMode('percent')}
                   className={cn(
-                    'h-7 min-w-[55px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[55px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     positionMode === 'percent' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={positionMode === 'percent' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1074,7 +1101,7 @@ ${rangeLines}
                   type="button"
                   onClick={() => setPositionMode('fixed')}
                   className={cn(
-                    'h-7 min-w-[55px] px-2 rounded-md text-[11px] font-medium transition-all duration-200 active:scale-[0.97]',
+                    'h-7 min-w-[55px] px-2 rounded-md text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                     positionMode === 'fixed' ? '' : 'text-monad-purple-light/60 hover:bg-white/5'
                   )}
                   style={positionMode === 'fixed' ? { color: LOBSTER_COLOR, backgroundColor: `${LOBSTER_COLOR}15`, border: `1px solid ${LOBSTER_COLOR}40` } : undefined}
@@ -1088,14 +1115,14 @@ ${rangeLines}
           {/* Central Range Header Row - only when Same for all mode */}
           {rangeMode === 'same' && (
             <div className="flex items-center gap-3 py-1.5 mb-1">
-              {/* Empty columns to match pool row alignment — hidden on mobile */}
-              <div className="hidden xl:block w-[150px] shrink-0" />
-              <div className="hidden xl:block w-[100px] shrink-0" />
-              <div className="hidden xl:block w-[50px] shrink-0" />
-              <div className="hidden xl:flex w-[50px] shrink-0 items-end justify-center">
-                <span className="text-[10px] text-white/40">Wallet %</span>
+              {/* Empty columns to match pool row alignment — hidden when stacked */}
+              <div className="hidden @7xl:block w-[150px] shrink-0" />
+              <div className="hidden @7xl:block w-[100px] shrink-0" />
+              <div className="hidden @7xl:block w-[50px] shrink-0" />
+              <div className="hidden @7xl:flex w-[50px] shrink-0 items-end justify-center">
+                <span className="text-[11px] text-white/40">Wallet %</span>
               </div>
-              <div className="hidden xl:block w-[60px] shrink-0" />
+              <div className="hidden @7xl:block w-[60px] shrink-0" />
               {/* Central Range Slider */}
               <div className="flex-1 min-w-0">
                 {/* Slider row */}
@@ -1107,7 +1134,7 @@ ${rangeLines}
                       const val = parseInt(e.target.value.replace(/[^0-9]/g, ''));
                       if (!isNaN(val) && val >= 0 && val <= 99) setCentralMinPercent(-val);
                     }}
-                    className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
+                    className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
                     style={{
                       color: LOBSTER_COLOR,
                       textShadow: `0 0 8px ${LOBSTER_COLOR}60`,
@@ -1132,7 +1159,7 @@ ${rangeLines}
                       const val = parseInt(e.target.value.replace(/[^0-9]/g, ''));
                       if (!isNaN(val) && val >= 0) setCentralMaxPercent(val);
                     }}
-                    className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
+                    className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
                     style={{
                       color: LOBSTER_COLOR,
                       textShadow: `0 0 8px ${LOBSTER_COLOR}60`,
@@ -1148,12 +1175,12 @@ ${rangeLines}
 
           {/* Column header for "Deploy" — only needed in Individual mode (Same for all mode has it in the spacer row) */}
           {rangeMode === 'custom' && (
-            <div className="hidden xl:flex items-center gap-3 mb-0.5">
+            <div className="hidden @7xl:flex items-center gap-3 mb-0.5">
               <div className="w-[150px] shrink-0" />
               <div className="w-[100px] shrink-0" />
               <div className="w-[50px] shrink-0" />
               <div className="w-[50px] shrink-0 flex justify-center">
-                <span className="text-[10px] text-white/40">Wallet %</span>
+                <span className="text-[11px] text-white/40">Wallet %</span>
               </div>
             </div>
           )}
@@ -1168,10 +1195,8 @@ ${rangeLines}
               return (
                 <div
                   key={pool.id}
-                  className="flex flex-col xl:flex-row xl:items-center gap-1.5 xl:gap-3 py-1.5 xl:py-1"
+                  className="flex flex-wrap @7xl:flex-nowrap items-center gap-3 py-1"
                 >
-                  {/* Pool info row — always horizontal */}
-                  <div className="flex items-center gap-3">
                   {/* Pool Info - FIXED WIDTH (matches TanStack table styling) */}
                   <div className="flex items-center gap-2 w-[150px] shrink-0">
                     <TokenPairLogo
@@ -1186,7 +1211,7 @@ ${rangeLines}
                       >
                         {pool.tokenXSymbol}/{pool.tokenYSymbol}
                       </span>
-                      <span className="text-[11px] text-monad-purple-light/40">
+                      <span className="text-xs text-monad-purple-light/40">
                         {pool.feePercent % 1 === 0 ? pool.feePercent.toFixed(1) : pool.feePercent.toFixed(2)}% fee
                       </span>
                     </div>
@@ -1203,12 +1228,12 @@ ${rangeLines}
                         className="rounded-full shrink-0"
                       />
                     )}
-                    <span className="text-xs truncate" style={{ color: dexColor }}>{pool.protocolName}</span>
+                    <span className="text-sm truncate" style={{ color: dexColor }}>{pool.protocolName}</span>
                   </div>
 
                   {/* Metric - FIXED WIDTH */}
                   <div className="w-[50px] shrink-0 text-right">
-                    <span className="text-xs font-medium" style={{ color: LOBSTER_COLOR }}>
+                    <span className="text-sm font-medium" style={{ color: LOBSTER_COLOR }}>
                       {metricDisplay === 'apr'
                         ? `${(pool.combinedAPR ?? 0).toFixed(0)}%`
                         : formatPercent(pool.normalizedBestlyReturn)
@@ -1239,7 +1264,7 @@ ${rangeLines}
                         if (!isNaN(val)) setPoolAllocation(pool.id, val);
                       }}
                       className={cn(
-                        'w-[44px] h-7 px-1 rounded-md text-[11px] md:text-[11px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors',
+                        'w-[44px] h-7 px-1 rounded-md text-xs md:text-sm text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors',
                         distributionMode === 'equal' ? 'text-white/30' : 'text-white/70'
                       )}
                       style={{
@@ -1251,16 +1276,13 @@ ${rangeLines}
 
                   {/* TVL - FIXED WIDTH */}
                   <div className="w-[60px] shrink-0 text-right">
-                    <span className="text-xs text-white/70">{formatUSD(pool.tvl)}</span>
+                    <span className="text-sm text-white/70">{formatUSD(pool.tvl)}</span>
                   </div>
-
-                  </div>{/* end pool info row */}
-
-                  {/* Range Selector — stacked below on mobile, inline on xl+ */}
+                  {/* Range Selector — wraps to full-width new line when narrow */}
                   {isKuruVault ? (
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 basis-full @7xl:basis-0 @7xl:flex-1">
                       <span
-                        className="px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                        className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider"
                         style={{
                           backgroundColor: `${dexColor}15`,
                           border: `1px solid ${dexColor}30`,
@@ -1269,7 +1291,7 @@ ${rangeLines}
                       >
                         Vault
                       </span>
-                      <span className="text-[10px] text-white/35">Auto-managed spread — no range needed</span>
+                      <span className="text-[11px] text-white/35">Auto-managed spread — no range needed</span>
                     </div>
                   ) : rangeMode === 'custom' ? (
                     (() => {
@@ -1280,7 +1302,7 @@ ${rangeLines}
                       const rightLabel = positionMode === 'percent' ? `+${poolRange.max}%` : formatPrice(upperPrice);
 
                       return (
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0 basis-full @7xl:basis-0 @7xl:flex-1">
                           <Input
                             type="text"
                             value={leftLabel}
@@ -1288,7 +1310,7 @@ ${rangeLines}
                               const val = parseInt(e.target.value.replace(/[^0-9]/g, ''));
                               if (!isNaN(val) && val >= 0 && val <= 99) setPoolRange(pool.id, -val, poolRange.max);
                             }}
-                            className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
+                            className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
                             style={{
                               backgroundColor: `${LOBSTER_COLOR}10`,
                               border: `1px solid ${LOBSTER_COLOR}30`,
@@ -1312,7 +1334,7 @@ ${rangeLines}
                               const val = parseInt(e.target.value.replace(/[^0-9]/g, ''));
                               if (!isNaN(val) && val >= 0) setPoolRange(pool.id, poolRange.min, val);
                             }}
-                            className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
+                            className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 focus-visible:ring-0 shadow-none transition-colors"
                             style={{
                               backgroundColor: `${LOBSTER_COLOR}10`,
                               border: `1px solid ${LOBSTER_COLOR}30`,
@@ -1334,9 +1356,9 @@ ${rangeLines}
                       const rightLabel = positionMode === 'percent' ? `+${centralMaxPercent}%` : formatPrice(upperPrice);
 
                       return (
-                        <div className="flex items-center gap-2 flex-1 min-w-0 opacity-40">
+                        <div className="flex items-center gap-2 min-w-0 basis-full @7xl:basis-0 @7xl:flex-1 opacity-40">
                           <span
-                            className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 flex items-center justify-center"
+                            className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 flex items-center justify-center"
                             style={{
                               backgroundColor: `${LOBSTER_COLOR}10`,
                               border: `1px solid ${LOBSTER_COLOR}30`,
@@ -1354,7 +1376,7 @@ ${rangeLines}
                             />
                           </div>
                           <span
-                            className="w-14 h-7 px-1 rounded-md text-[10px] text-center font-medium shrink-0 flex items-center justify-center"
+                            className="w-14 h-7 px-1 rounded-md text-[11px] text-center font-medium shrink-0 flex items-center justify-center"
                             style={{
                               backgroundColor: `${LOBSTER_COLOR}10`,
                               border: `1px solid ${LOBSTER_COLOR}30`,
@@ -1375,20 +1397,20 @@ ${rangeLines}
               const dexConfig = DEX_CONFIG[pool.protocolName as DexType];
               const dexColor = dexConfig?.color || '#666';
               return (
-                <div key={pool.id} className="flex flex-wrap items-center gap-3 py-1 opacity-40">
+                <div key={pool.id} className="flex items-center gap-3 py-1 opacity-40">
                   <div className="flex items-center gap-2 w-[150px] shrink-0">
                     <TokenPairLogo symbolX={pool.tokenXSymbol} symbolY={pool.tokenYSymbol} size="sm" />
                     <div className="min-w-0 flex flex-col">
                       <span className="text-sm font-semibold leading-tight truncate" style={{ color: dexColor }}>
                         {pool.poolPair}
                       </span>
-                      <span className="text-[11px] text-white/30">{pool.protocolName}</span>
+                      <span className="text-xs text-white/30">{pool.protocolName}</span>
                     </div>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-red-500/10 text-red-400/70 border border-red-500/20 uppercase tracking-wider">
                     Unsupported DEX
                   </span>
-                  <span className="text-[10px] text-white/25 ml-auto">No liquidity skill available — excluded from deployment</span>
+                  <span className="text-[11px] text-white/25 ml-auto">No liquidity skill available — excluded from deployment</span>
                 </div>
               );
             })}
