@@ -970,18 +970,14 @@ ${rangeLines}
                   const poolRange = rangeMode === 'same'
                     ? { min: centralMinPercent, max: centralMaxPercent }
                     : getPoolRange(pool.id);
+                  const allocationPct = getPoolAllocation(pool.id);
+                  const isKuru = isVaultPool(pool);
                   return (
                     <p key={pool.id} className="pl-2">
                       {index + 1}. <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span>
-                      {rangeMode === 'custom' && !isVaultPool(pool) && (() => {
-                        const fmtPrice = (p: number) => p >= 1 ? `$${p.toFixed(2)}` : `$${p.toFixed(4)}`;
-                        if (positionMode === 'fixed' && pool.priceX) {
-                          const lo = pool.priceX * (1 + poolRange.min / 100);
-                          const hi = pool.priceX * (1 + poolRange.max / 100);
-                          return <> — <span style={{ color: LOBSTER_COLOR }}>{fmtPrice(lo)}</span> to <span style={{ color: LOBSTER_COLOR }}>{fmtPrice(hi)}</span> <span className="text-white/30">({poolRange.min}% to +{poolRange.max}%)</span></>;
-                        }
-                        return <> — <span style={{ color: LOBSTER_COLOR }}>{poolRange.min}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{poolRange.max}%</span></>;
-                      })()}
+                      {isKuru
+                        ? <> — depositing <span style={{ color: LOBSTER_COLOR }}>{allocationPct}%</span> of capital into vault (auto-managed)</>
+                        : <> — deploying <span style={{ color: LOBSTER_COLOR }}>{allocationPct}%</span> of capital in a <span style={{ color: LOBSTER_COLOR }}>{poolRange.min}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{poolRange.max}%</span> range from current price</>}
                     </p>
                   );
                 })}
@@ -993,15 +989,15 @@ ${rangeLines}
                 {selectedPools.map((pool, index) => {
                   const isKuruVault = isVaultPool(pool);
                   const poolRange = rangeMode === 'same' ? { min: centralMinPercent, max: centralMaxPercent } : getPoolRange(pool.id);
-                  const lowerPrice = pool.priceX ? pool.priceX * (1 + poolRange.min / 100) : null;
-                  const upperPrice = pool.priceX ? pool.priceX * (1 + poolRange.max / 100) : null;
-                  const fmtPrice = (p: number) => p >= 1 ? `$${p.toFixed(2)}` : `$${p.toFixed(4)}`;
+                  const allocationPct = getPoolAllocation(pool.id);
+                  const shareText = distributionMode === 'equal' ? `1/${selectedPools.length}` : `${allocationPct}%`;
                   const isLast = index === selectedPools.length - 1;
                   return (
                     <p key={pool.id} className="pl-2">
-                      {index + 1}. Deploy <span style={{ color: LOBSTER_COLOR }}>1/{selectedPools.length}</span> into <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span>{isKuruVault
-                        ? <> <span className="text-white/30">(vault)</span></>
-                        : <> at <span style={{ color: LOBSTER_COLOR }}>{poolRange.min}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{poolRange.max}%</span>{lowerPrice && upperPrice && <> ({fmtPrice(lowerPrice)} - {fmtPrice(upperPrice)})</>}</>}{isLast && '"'}
+                      {index + 1}. <span style={{ color: LOBSTER_COLOR }}>{pool.poolPair}</span> on <span style={{ color: LOBSTER_COLOR }}>{pool.protocolName}</span>
+                      {isKuruVault
+                        ? <> — depositing <span style={{ color: LOBSTER_COLOR }}>{shareText}</span> of capital into vault (auto-managed)</>
+                        : <> — deploying <span style={{ color: LOBSTER_COLOR }}>{shareText}</span> of capital in a <span style={{ color: LOBSTER_COLOR }}>{poolRange.min}%</span> to <span style={{ color: LOBSTER_COLOR }}>+{poolRange.max}%</span> range from current price</>}{isLast && '"'}
                     </p>
                   );
                 })}
