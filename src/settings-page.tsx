@@ -265,7 +265,6 @@ export default function OpenClawSettingsPage() {
           {/* Transport Cards */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <TransportCard
-              transport="tailscale"
               selected={config.transport === 'tailscale'}
               icon={<Wifi className="w-5 h-5" />}
               title="Tailscale Direct"
@@ -275,7 +274,6 @@ export default function OpenClawSettingsPage() {
               accentColor={ACCENT_COLOR}
             />
             <TransportCard
-              transport="telegram"
               selected={false}
               icon={<Send className="w-5 h-5" />}
               title="Telegram"
@@ -860,7 +858,6 @@ function GlassCard({ children, accentColor, className }: GlassCardProps) {
 }
 
 interface TransportCardProps {
-  transport: Transport;
   selected: boolean;
   icon: React.ReactNode;
   title: string;

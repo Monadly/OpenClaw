@@ -148,5 +148,5 @@ export async function writePoolsMd(pools: PoolData[], basePath: string = process
   const markdown = generatePoolsMarkdown(pools);
   await writeFile(outputPath, markdown, 'utf-8');
 
-  console.log(`[pools-md] Written ${outputPath} with ${pools.length} pools`);
+  console.info(`[pools-md] Written ${outputPath} with ${pools.length} pools`);
 }

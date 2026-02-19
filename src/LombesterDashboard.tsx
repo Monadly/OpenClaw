@@ -76,8 +76,6 @@ const isVaultPool = (pool: PoolTableRowData) => pool.protocolName.toLowerCase() 
 interface LombesterDashboardProps {
   /** Set of selected pool IDs */
   selectedPoolIds: Set<string>;
-  /** Pool ID with OpenClaw controls expanded (if any) */
-  openClawExpandedPoolId: string | null;
   /** Callback to close/dismiss the dashboard */
   onClose: () => void;
   /** All pools (to get details for selected items) */
