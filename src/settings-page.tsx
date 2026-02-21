@@ -15,7 +15,7 @@ import { Copy, RefreshCw, Play, Square, Activity, Check, ArrowLeft, Zap, Shield,
 import { useOpenClawConfig, type Transport } from '@openclaw/useOpenClawConfig';
 import { useBotCommand, type BotCommand } from '@openclaw/useBotCommand';
 import { toast } from 'sonner';
-import Link from 'next/link';
+import Link from '@/platform/link';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 

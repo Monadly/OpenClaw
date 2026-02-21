@@ -32,8 +32,8 @@
 import { useState, useCallback, useMemo, useRef, forwardRef, useEffect } from 'react';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import Image from 'next/image';
-import Link from 'next/link';
+import Image from '@/platform/image';
+import Link from '@/platform/link';
 import { Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBotCommand } from '@/hooks/useBotCommand';
